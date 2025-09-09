@@ -2,6 +2,7 @@ const { WebSocketServer } = require('ws')
 const http = require('http')
 const uuidv4 = require('uuid').v4
 const url = require('url')
+const { json } = require('stream/consumers')
 
 
 const server = http.createServer()
@@ -29,6 +30,17 @@ const onMessage = (bytes, uuid) =>{
         }))
     }
 
+    else if(message.accept){
+
+        connections[playerToUuid].send(JSON.stringify({
+            challenger: users[uuid].username,
+            challenged:true
+        }))
+
+        // console.log(users[uui])
+    }
+
+
     else {
         const hand = message.hand
         users[uuid].hand = hand
@@ -40,19 +52,30 @@ const onMessage = (bytes, uuid) =>{
             const connection = connections[uuid]
             playerConnection.send(JSON.stringify(users[playerToUuid]))
             connection.send(JSON.stringify(users[uuid]))
+            console.log(users[uuid])
+            console.log(users[playerToUuid])
 
-
-            users[playerToUuid].from = ""
-            users[playerToUuid].hand = ""
-            users[playerToUuid].receiveHand = ""
+            // users[playerToUuid].from = ""
+            // users[playerToUuid].hand = ""
+            // users[playerToUuid].receiveHand = ""
 
             
-            users[uuid].from = ""
-            users[uuid].hand = ""
-            users[uuid].receiveHand = ""
+            // users[uuid].from = ""
+            // users[uuid].hand = ""
+            // users[uuid].receiveHand = ""
+        }
+        else{
+            connections[uuid].send(JSON.stringify({
+                sentHand:true
+            }))
+
+            connections[playerToUuid].send(JSON.stringify({
+                gotHand:true
+            }))
+            console.log(users[uuid])
+            console.log(users[playerToUuid])
         }
     }
-    console.log("jo")
 }
 
 const broadcastAllUsername = ()=>{
@@ -68,8 +91,16 @@ const broadcastAllUsername = ()=>{
     // console.log(usernames)
 }
 
+const onClose =(uuid)=>{
+    delete connections[uuid]
+    delete users[uuid]
+    broadcastAllUsername()
+
+    console.log("closed")
+}
+
 wsServer.on('connection', (connection, request)=>{
-    console.log("Connected")
+    // console.log("Connected")
     const {username} = url.parse(request.url, true).query
     const uuid = uuidv4()
 
@@ -87,14 +118,15 @@ wsServer.on('connection', (connection, request)=>{
     }
 
     else {
-        console.log("Already logged in")
+        connection.send(JSON.stringify({error: "You're already logged in"}))
     }
 
 
     broadcastAllUsername()
 
-    console.log(users)
+    // console.log(users)
     connection.on('message', message => onMessage(message, uuid))
+    connection.on('close', ()=>{onClose(uuid)})
 })
 
 server.listen(port, ()=>{
