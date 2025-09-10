@@ -15,7 +15,7 @@ function App() {
       
       <Login setUsername={setUsername}></Login>
     }
-    <Toaster position="top-center" closeButton></Toaster>
+    <Toaster position="top-center" closeButton richColors></Toaster>
     </>
   )
 }
