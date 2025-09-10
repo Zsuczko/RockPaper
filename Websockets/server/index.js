@@ -1,11 +1,15 @@
 const { WebSocketServer } = require('ws')
+const express = require('express');
 const http = require('http')
 const uuidv4 = require('uuid').v4
 const url = require('url')
-const { json } = require('stream/consumers')
 
 
-const server = http.createServer()
+
+const app = express();
+const server = http.createServer(app); 
+
+
 const wsServer = new WebSocketServer({server})
 
 const port = 8000
