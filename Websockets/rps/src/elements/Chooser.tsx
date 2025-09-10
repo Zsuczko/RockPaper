@@ -29,7 +29,7 @@ const Chooser: React.FC<ChooserProps> = ({username}) => {
     const [youHand, setYouHand] = useState<string>()
 
 
-    const wsUrl = useMemo(() => 'https://rockpaper-3.onrender.com', []);
+    const wsUrl = useMemo(() => 'wss://rockpaper-4.onrender.com', []);
   
     // Memoize options to prevent unnecessary reconnects
     const socketOptions = useMemo(() => ({
