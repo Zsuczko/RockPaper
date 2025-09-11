@@ -11,7 +11,7 @@ function App() {
   return (
     <>
     {username?       
-      <Chooser username={username}></Chooser>:
+      <Chooser username={username} setUsername={setUsername}></Chooser>:
       
       <Login setUsername={setUsername}></Login>
     }

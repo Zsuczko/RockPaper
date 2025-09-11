@@ -3,18 +3,19 @@ import { Button } from '@/components/ui/button'
 import React, { useEffect, useMemo, useState } from 'react'
 import useWebSocket from 'react-use-websocket'
 import { toast } from 'sonner'
-import { FaCheck, FaRegHandPaper, FaRegHandRock, FaRegHandScissors } from "react-icons/fa";
+import { FaCheck, FaLongArrowAltLeft, FaRegHandPaper, FaRegHandRock, FaRegHandScissors } from "react-icons/fa";
 import CircleLoader from 'react-spinners/CircleLoader'
 
 
 type ChooserProps={
-    username:string
+    username:string,
+    setUsername: (newUsername:string | undefined) => void
 }
 
 
 
 
-const Chooser: React.FC<ChooserProps> = ({username}) => {
+const Chooser: React.FC<ChooserProps> = ({username, setUsername}) => {
 
     const [allUsername, setAllUsername] = useState<string[]>([])
 
@@ -29,9 +30,14 @@ const Chooser: React.FC<ChooserProps> = ({username}) => {
     const [youHand, setYouHand] = useState<string>()
 
 
-    const wsUrl = useMemo(() => 'wss://rockpaper-4.onrender.com', []);
+    const [yourScore, setYourScore] = useState<number>(0)
+    const [oppScore, setOppScore] = useState<number>(0)
+
+    const url = 'wss://rockpaper-4.onrender.com'
+    // const url = 'ws://localhost:8000'
+
+    const wsUrl = useMemo(() => url, []);
   
-    // Memoize options to prevent unnecessary reconnects
     const socketOptions = useMemo(() => ({
       share: true,
       queryParams: { username }
@@ -69,39 +75,8 @@ const Chooser: React.FC<ChooserProps> = ({username}) => {
         })
     }
 
-    // const checking=()=>{
-    //     if(youHand==="R" && opponentHand==="S"){
-    //         toast.success("You've won")
-    //     }
-    //     if(youHand==="R" && opponentHand==="P"){
-    //         toast.error("You've lost")
-    //     }
-    //     if(youHand==="R" && opponentHand==="R"){
-    //         toast.info("Draw")
-    //     }
-    //     if(youHand==="P" && opponentHand==="R"){
-    //         toast.success("You've won")
-    //     }
-    //     if(youHand==="P" && opponentHand==="S"){
-    //         toast.error("You've lost")
-    //     }
-    //     if(youHand==="P" && opponentHand==="P"){
-    //         toast.info("Draw")
-    //     }
-    //     if(youHand==="S" && opponentHand==="P"){
-    //         toast.success("You've won")
-    //     }
-    //     if(youHand==="S" && opponentHand==="R"){
-    //         toast.error("You've lost")
-    //     }
-    //     if(youHand==="S" && opponentHand==="S"){
-    //         toast.info("Draw")
-    //     }
-
-    // }
 
     const checking = () => {
-        console.log("checking function called"); // <- Add this
         const hand1 = youHand?.toUpperCase();
         const hand2 = opponentHand?.toUpperCase();
 
@@ -113,7 +88,6 @@ const Chooser: React.FC<ChooserProps> = ({username}) => {
         if (hand1 === hand2) {
           toast.info("Draw");
 
-          console.log("draw")
           return;
         }
       
@@ -125,16 +99,27 @@ const Chooser: React.FC<ChooserProps> = ({username}) => {
       
         if (winMap[hand1] === hand2) {
           toast.success("You've won");
-          console.log("won")
+          setYourScore(yourScore +1)
+
         } else {
           toast.error("You've lost");
-          console.log("Lost")
+          setOppScore(oppScore+1)
         }
       };
 
+    const BackToHome = ()=>{
+        Socket.sendJsonMessage({
+            backHome:true,
+            userTo:challenger
+        });
+
+        setChallenge(false)
+        setYourScore(0)
+        setOppScore(0)
+    }
+
     useEffect(()=>{
-        // console.log('Type of message:', typeof Socket.lastJsonMessage);
-        // console.log('Message content:', Socket.lastJsonMessage);
+
 
         if(Array.isArray(Socket.lastJsonMessage)){
 
@@ -143,6 +128,19 @@ const Chooser: React.FC<ChooserProps> = ({username}) => {
             Socket.lastJsonMessage.map((un:string)=>(
                 setAllUsername((prev)=>[...prev, un])
             ))
+        }
+
+        else if(Socket.lastJsonMessage && (Socket.lastJsonMessage as any).already){
+
+            toast.warning((Socket.lastJsonMessage as any).error);
+            setUsername(undefined)
+
+        }
+
+        else if(Socket.lastJsonMessage && (Socket.lastJsonMessage as any).alreadyInGame){
+
+            toast.warning((Socket.lastJsonMessage as any).error);
+
         }
         else if(Socket.lastJsonMessage && (Socket.lastJsonMessage as any).ask){
 
@@ -168,6 +166,15 @@ const Chooser: React.FC<ChooserProps> = ({username}) => {
             setOpponentChoosen(true)
         }
 
+        else if(Socket.lastJsonMessage && (Socket.lastJsonMessage as any).oppLeft){
+
+            toast.warning("Your opponent left the game!");
+            setChallenge(false)
+            setYourScore(0)
+            setOppScore(0)
+
+        }
+
         else if(Socket.lastJsonMessage && (Socket.lastJsonMessage as any).receiveHand){
 
             setOpponentChoosen(true)
@@ -175,6 +182,13 @@ const Chooser: React.FC<ChooserProps> = ({username}) => {
             setOpponentHand(handss)
 
             console.log((Socket.lastJsonMessage as any).receiveHand)
+
+            setTimeout(() => {
+                setYouChoosen(false);
+                setOpponentChoosen(false)
+                setOpponentHand(undefined)
+              }, 2500);
+
 
             // checking()
         }
@@ -205,34 +219,39 @@ const Chooser: React.FC<ChooserProps> = ({username}) => {
     return (
 
         !challenge ?
-        <div className='m-10 flex flex-col gap-2 w-72'>
-            <h1 className='text-2xl'>Welcome: {username}</h1>
-            {/* {
-                Socket.lastJsonMessage? <p>{JSON.stringify(Socket.lastJsonMessage, null, 2)}</p>:
-                <p>nem jo</p>
-            } */}
-            <p className='text-4xl'>Available users: </p>
-            {allUsername.length>1 ? (
+        <div className='flex justify-center p-5 pt-10 lg:p-20'>
+            <div className='flex flex-col gap-10 items-center'>
+                <h1 className='text-3xl lg:text-5xl'>Welcome here <span className='font-bold'>{username}!</span></h1>
+                <p className='text-2xl lg:text-4xl'>Choose your opponent: </p>
+                {allUsername.length>1 ? (
                     allUsername.map((un: string) => (
 
-                        <>{un != username? <Button onClick={()=>SendMessage(un)}>{un}</Button>:<></>}</>
+                        <>{un != username? <Button className='text-xl lg:text-3xl lg:p-7 truncate' onClick={()=>SendMessage(un)}>{un}</Button>:<></>}</>
                         
                     ))
                     ) : 
-                    <p className='text-2xl'>There is no other player</p>
+                    <p className='text-xl lg:text-4xl'>There is no available player</p>
                     }
+            </div>
+        
+
         </div>:
 
         <div className='flex justify-center flex-col h-full w-full gap-20 mr-10 p-10'>
-            <h1 className='text-5xl m-auto mt-20'>{username} vs {challenger}</h1>
-            <div className=' w-full h-96 flex justify-between'>
+            <Button className='absolute top-5 left-5' onClick={BackToHome}>
+                <FaLongArrowAltLeft />
+                Back to home
+            </Button>
+            <h1 className='text-2xl lg:text-5xl m-auto mt-20'>{username} ({yourScore}) vs {challenger} ({oppScore})</h1>
+            {/* <h1>{yourScore}:{oppScore}</h1> */}
+            <div className=' w-full h-96 flex justify-between flex-col items-center lg:flex-row'>
                     <div className='flex flex-col w-[50%]'>
-                        <h1 className='text-3xl font-bold m-auto'>Choose a hand:</h1>
-                        <div className='flex flex-row gap-3'>
+                        <h1 className='text-xl lg:text-3xl font-bold m-auto'>Choose a hand:</h1>
+                        <div className='flex items-center flex-col lg:flex-row gap-3'>
                             {!youChoosen?
-                            <><FaRegHandRock className='text-[18em]'  onClick={()=>{SendHand("R")}}/>
-                            <FaRegHandPaper className='text-[18em]' onClick={()=>{SendHand("P")}}/>
-                            <FaRegHandScissors className='text-[18em]' onClick={()=>{SendHand("S")}}/>
+                            <><FaRegHandRock className='text-[6rem] lg:text-[18em]'  onClick={()=>{SendHand("R")}}/>
+                            <FaRegHandPaper className='text-[6rem] lg:text-[18em]' onClick={()=>{SendHand("P")}}/>
+                            <FaRegHandScissors className='text-[6rem] lg:text-[18em]' onClick={()=>{SendHand("S")}}/>
                                 </>:
                             <>
                             {renderContent(youHand)}
@@ -240,18 +259,20 @@ const Chooser: React.FC<ChooserProps> = ({username}) => {
                             
                         </div>
                     </div>
-                    <div className='flex flex-col w-[50%]'>
-                        <h1 className='text-3xl font-bold m-auto'>Opponent's hand:</h1>
-                        {/* <div className='flex flex-row gap-3'>
-                            <FaRegHandRock className='text-[18em]'  onClick={()=>{console.log("Rock")}}/>
-                            <FaRegHandPaper className='text-[18em]' />
-                            <FaRegHandScissors className='text-[18em]' />
-                        </div> */}
+                    <div className='flex flex-col w-[50%] gap-10'>
+                        <h1 className='text-xl lg:text-3xl font-bold m-auto'>Opponent's hand:</h1>
                         <div className='m-auto'>
                         {opponentShoosen ? (
                             !opponentHand ? <FaCheck className='text-5xl' /> : (renderContent(opponentHand))
                         ) : (
-                            <CircleLoader size={250} />
+                            <>
+                              <div className="block lg:hidden">
+                                    <CircleLoader size={100} />
+                                </div>
+                                <div className="hidden lg:block">
+                                    <CircleLoader size={250} />
+                                </div>
+                            </>
                         )}
                         </div>
                     </div>
