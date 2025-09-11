@@ -206,11 +206,11 @@ const Chooser: React.FC<ChooserProps> = ({username, setUsername}) => {
     const renderContent = (hands:string |undefined) => {
         switch (hands) {
           case 'R':
-            return <FaRegHandRock className='text-[18em] w-full'/>;
+            return <FaRegHandRock className='text-[10rem] lg:text-[18em] w-full'/>;
           case 'P':
-            return <FaRegHandPaper className='text-[18em] w-full'/>;
+            return <FaRegHandPaper className='text-[10rem] lg:text-[18em] w-full'/>;
           case 'S':
-            return <FaRegHandScissors className='text-[18em] w-full'/>;
+            return <FaRegHandScissors className='text-[10rem] lg:text-[18em] w-full'/>;
           default:
             return <p>Unknown status</p>;
         }
@@ -244,7 +244,7 @@ const Chooser: React.FC<ChooserProps> = ({username, setUsername}) => {
             </Button>
             <h1 className='text-2xl lg:text-5xl m-auto mt-20'>{username} ({yourScore}) vs {challenger} ({oppScore})</h1>
             {/* <h1>{yourScore}:{oppScore}</h1> */}
-            <div className=' w-full h-96 flex justify-between flex-col items-center lg:flex-row'>
+            <div className=' w-full h-96 flex justify-between flex-col items-center lg:flex-row gap-5'>
                     <div className='flex flex-col w-[50%]'>
                         <h1 className='text-xl lg:text-3xl font-bold m-auto'>Choose a hand:</h1>
                         <div className='flex items-center flex-col lg:flex-row gap-3'>
